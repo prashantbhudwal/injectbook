@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run checks
+        run: |
+          npm run check
+          npm test
+
+      - name: Build package
+        run: npm run build:binary
+
+      - name: Package CLI
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ARCH="$(uname -m)"
+          if [ "$ARCH" = "x86_64" ]; then
+            ARCH="amd64"
+          fi
+          ARTIFACT="injectbook-v${VERSION}-darwin-${ARCH}.tar.gz"
+          mkdir -p dist/release
+          cp -R dist/src dist/release/src
+          cp -R dist/templates dist/release/templates
+          cp dist/package.json dist/release/package.json
+          cp -R node_modules dist/release/node_modules
+          cat > dist/release/injectbook <<'EOF'
+          #!/usr/bin/env bash
+          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+          exec node "$SCRIPT_DIR/src/cli.js" "$@"
+          EOF
+          chmod +x dist/release/injectbook
+          tar -C dist/release -czf "dist/${ARTIFACT}" injectbook src templates package.json node_modules
+
+      - name: Generate SHA256
+        id: sha
+        run: |
+          FILE=$(ls dist/injectbook-v*-darwin-*.tar.gz)
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+          echo "sha=$(shasum -a 256 \"$FILE\" | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ steps.sha.outputs.file }}
+
+      - name: Print formula update hints
+        run: |
+          echo "Update Formula/injectbook.rb in your tap repo with:"
+          echo "  Formula/injectbook.rb"
+          echo "  url: https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename '${{ steps.sha.outputs.file }}')"
+          echo "  sha256: ${{ steps.sha.outputs.sha }}"
