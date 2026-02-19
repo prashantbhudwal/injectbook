@@ -1,16 +1,16 @@
 class Injectbook < Formula
   desc "Convert books into Codex-compatible skills with Calibre"
   homepage "https://github.com/prashantbhudwal/injectbook"
-  version "0.4.0"
+  version "0.5.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.4.0/injectbook-v0.4.0-darwin-arm64.tar.gz"
-      sha256 "51e5173701b65b73bcc14ac5bf530e90d34574e9a6eaf7b3e6c5420b8342fcc6"
+      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.5.0/injectbook-v0.5.0-darwin-arm64.tar.gz"
+      sha256 "b835b9e49894bd03ab7033b868d123f70bef08243c0f1e3272478938e3f379ce"
     else
-      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.4.0/injectbook-v0.4.0-darwin-amd64.tar.gz"
-      sha256 "641e6f942bae2a29fd92c814d84580fb04fae3ce5527796dffa72bd86d05620a"
+      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.5.0/injectbook-v0.5.0-darwin-amd64.tar.gz"
+      sha256 "5213f39a24a20d417c8eb53914a4f99da7c54d5d85a328fc2a7e6e79aa54c0d9"
     end
   end
 
