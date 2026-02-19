@@ -40,8 +40,10 @@ git push origin vX.Y.Z
 5. Wait for workflow `Release` in app repo to complete successfully.
    - Workflow file: `~/Code/injectbook/.github/workflows/release.yml`
 6. From the completed run/release, collect:
-   - Asset URL (`injectbook-vX.Y.Z-darwin-<arch>.tar.gz`)
-   - SHA256 of that exact asset
+   - Asset URLs:
+     - `injectbook-vX.Y.Z-darwin-arm64.tar.gz`
+     - `injectbook-vX.Y.Z-darwin-amd64.tar.gz`
+   - SHA256 for each exact asset
 
 ## Agent automation policy (preferred)
 
@@ -53,14 +55,14 @@ After pushing tag `vX.Y.Z`, the agent should complete all remaining steps withou
 gh release view vX.Y.Z --repo prashantbhudwal/injectbook --json assets,tagName,name,publishedAt,url
 ```
 
-2. Extract the correct artifact and SHA256:
-   - Artifact: `injectbook-vX.Y.Z-darwin-arm64.tar.gz` (or target arch variant when needed)
-   - SHA: use `assets[].digest` (`sha256:<value>`) from the release metadata
+2. Extract artifact URLs and SHA256 values:
+   - `injectbook-vX.Y.Z-darwin-arm64.tar.gz` + SHA
+   - `injectbook-vX.Y.Z-darwin-amd64.tar.gz` + SHA
+   - SHA values come from `assets[].digest` (`sha256:<value>`)
 
 3. Update local tap formula in `~/Code/homebrew-tap/Formula/injectbook.rb`:
    - `version "X.Y.Z"`
-   - release `url` for `vX.Y.Z`
-   - exact `sha256`
+   - conditional `url`/`sha256` for `arm64` and `amd64`
 
 4. Commit and push tap repo:
 
@@ -91,8 +93,13 @@ injectbook --version
    - `~/Code/homebrew-tap/Formula/injectbook.rb`
 2. Update fields:
    - `version "X.Y.Z"`
-   - `url "https://github.com/prashantbhudwal/injectbook/releases/download/vX.Y.Z/injectbook-vX.Y.Z-darwin-<arch>.tar.gz"`
-   - `sha256 "<real-sha256-from-release-asset>"`
+   - `arm64` URL/SHA:
+     - `url "https://github.com/prashantbhudwal/injectbook/releases/download/vX.Y.Z/injectbook-vX.Y.Z-darwin-arm64.tar.gz"`
+     - `sha256 "<real-arm64-sha256-from-release-asset>"`
+   - `amd64` URL/SHA:
+     - `url "https://github.com/prashantbhudwal/injectbook/releases/download/vX.Y.Z/injectbook-vX.Y.Z-darwin-amd64.tar.gz"`
+     - `sha256 "<real-amd64-sha256-from-release-asset>"`
+   - remove `depends_on "node"` (standalone binary release)
 3. Commit and push tap repo:
 
 ```bash
@@ -123,4 +130,5 @@ injectbook --version
 
 - `sha256` cannot be known before the release artifact is built.
 - Keep formula in `homebrew-tap` as the source of truth users install from.
-- `injectbook` formula depends on `node`; Calibre is installed separately as a cask.
+- Keep `/Formula/injectbook.rb` in this repo synchronized with tap formula contents.
+- `injectbook` formula installs a standalone binary and does not depend on `node`; Calibre is installed separately as a cask.

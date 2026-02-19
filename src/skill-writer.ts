@@ -2,13 +2,62 @@ import fs from "node:fs";
 import path from "node:path";
 import { CliError, type BookMetadata, type Chapter, type SkillWriteOptions } from "./types";
 
+const FALLBACK_SKILL_TEMPLATE = `---
+name: {{name}}
+description: {{description}}
+---
+
+# {{name}}
+
+## Scope
+
+This skill is a direct reference extraction of the source book.
+Use it for factual retrieval and chapter-specific lookup.
+
+## Usage
+
+1. Start with \`references/book_full.md\` for broad context.
+2. Open chapter files in \`references/\` for focused details.
+3. Prefer the smallest chapter file that answers the question.
+
+## Book Metadata
+
+- Title: {{book_title}}
+- Authors: {{book_authors}}
+- Language: {{book_language}}
+- Publisher: {{book_publisher}}
+- Tags: {{book_tags}}
+
+## Chapter Index
+
+{{chapter_index}}
+`;
+
 function yamlScalar(value: string): string {
   return JSON.stringify(value);
 }
 
 function readTemplate(): string {
-  const templatePath = path.resolve(__dirname, "../templates/SKILL.md.tpl");
-  return fs.readFileSync(templatePath, "utf8");
+  const pkgEntrypoints = [
+    (process as NodeJS.Process & { pkg?: { entrypoint?: string; defaultEntrypoint?: string } }).pkg?.entrypoint,
+    (process as NodeJS.Process & { pkg?: { entrypoint?: string; defaultEntrypoint?: string } }).pkg?.defaultEntrypoint
+  ].filter((value): value is string => Boolean(value));
+
+  const candidates = [
+    path.resolve(__dirname, "../templates/SKILL.md.tpl"),
+    path.resolve(__dirname, "../../templates/SKILL.md.tpl"),
+    path.resolve(path.dirname(process.execPath), "templates/SKILL.md.tpl"),
+    ...pkgEntrypoints.map((entrypoint) => path.resolve(path.dirname(entrypoint), "../templates/SKILL.md.tpl")),
+    ...pkgEntrypoints.map((entrypoint) => path.resolve(path.dirname(entrypoint), "../../templates/SKILL.md.tpl"))
+  ];
+
+  for (const templatePath of candidates) {
+    if (fs.existsSync(templatePath)) {
+      return fs.readFileSync(templatePath, "utf8");
+    }
+  }
+
+  return FALLBACK_SKILL_TEMPLATE;
 }
 
 function safeValue(value: string | undefined, fallback = "Unknown"): string {

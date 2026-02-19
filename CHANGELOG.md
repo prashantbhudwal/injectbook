@@ -9,6 +9,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - No changes yet.
 
+## [0.4.0] - 2026-02-19
+
+### Changed
+
+- Homebrew distribution now ships standalone macOS binaries (`arm64` and `amd64`) built with `pkg`, replacing the previous Node.js wrapper bundle.
+- Homebrew formula installation now installs a single `injectbook` binary and no longer depends on Homebrew `node`, preventing PATH conflicts with user-managed runtimes like `nvm`.
+- Release workflow now publishes dual-arch binary tarballs and emits per-arch SHA256 values for formula updates.
+
 ## [0.3.0] - 2026-02-19
 
 ### Added
@@ -59,6 +67,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Metadata extraction no longer emits placeholders like `[object Object]`.
 - Reduced non-chapter artifacts in chapter indexes for many EPUBs.
 
-[Unreleased]: https://github.com/prashantbhudwal/injectbook/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/prashantbhudwal/injectbook/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/prashantbhudwal/injectbook/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/prashantbhudwal/injectbook/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/prashantbhudwal/injectbook/releases/tag/v0.2.0

@@ -29,43 +29,43 @@ jobs:
       - name: Build package
         run: npm run build:binary
 
-      - name: Package CLI
+      - name: Package CLI artifacts
+        id: package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ARCH="$(uname -m)"
-          if [ "$ARCH" = "x86_64" ]; then
-            ARCH="amd64"
-          fi
-          ARTIFACT="injectbook-v${VERSION}-darwin-${ARCH}.tar.gz"
-          mkdir -p dist/release
-          cp -R dist/src dist/release/src
-          cp -R dist/templates dist/release/templates
-          cp dist/package.json dist/release/package.json
-          cp -R node_modules dist/release/node_modules
-          cat > dist/release/injectbook <<'EOF'
-          #!/usr/bin/env bash
-          SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-          exec node "$SCRIPT_DIR/src/cli.js" "$@"
-          EOF
-          chmod +x dist/release/injectbook
-          tar -C dist/release -czf "dist/${ARTIFACT}" injectbook src templates package.json node_modules
+          mkdir -p dist/release/arm64 dist/release/amd64
 
-      - name: Generate SHA256
+          cp dist/pkg/injectbook-arm64 dist/release/arm64/injectbook
+          chmod +x dist/release/arm64/injectbook
+          tar -C dist/release/arm64 -czf "dist/injectbook-v${VERSION}-darwin-arm64.tar.gz" injectbook
+
+          cp dist/pkg/injectbook-x64 dist/release/amd64/injectbook
+          chmod +x dist/release/amd64/injectbook
+          tar -C dist/release/amd64 -czf "dist/injectbook-v${VERSION}-darwin-amd64.tar.gz" injectbook
+
+          echo "arm64_file=dist/injectbook-v${VERSION}-darwin-arm64.tar.gz" >> "$GITHUB_OUTPUT"
+          echo "amd64_file=dist/injectbook-v${VERSION}-darwin-amd64.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SHA256 values
         id: sha
         run: |
-          FILE=$(ls dist/injectbook-v*-darwin-*.tar.gz)
-          echo "file=$FILE" >> $GITHUB_OUTPUT
-          echo "sha=$(shasum -a 256 \"$FILE\" | awk '{print $1}')" >> $GITHUB_OUTPUT
+          ARM64_SHA=$(shasum -a 256 "${{ steps.package.outputs.arm64_file }}" | awk '{print $1}')
+          AMD64_SHA=$(shasum -a 256 "${{ steps.package.outputs.amd64_file }}" | awk '{print $1}')
+          echo "arm64_sha=$ARM64_SHA" >> "$GITHUB_OUTPUT"
+          echo "amd64_sha=$AMD64_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ steps.sha.outputs.file }}
+            ${{ steps.package.outputs.arm64_file }}
+            ${{ steps.package.outputs.amd64_file }}
 
       - name: Print formula update hints
         run: |
           echo "Update Formula/injectbook.rb in your tap repo with:"
           echo "  Formula/injectbook.rb"
-          echo "  url: https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename '${{ steps.sha.outputs.file }}')"
-          echo "  sha256: ${{ steps.sha.outputs.sha }}"
+          echo "  arm64 url: https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename '${{ steps.package.outputs.arm64_file }}')"
+          echo "  arm64 sha256: ${{ steps.sha.outputs.arm64_sha }}"
+          echo "  amd64 url: https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename '${{ steps.package.outputs.amd64_file }}')"
+          echo "  amd64 sha256: ${{ steps.sha.outputs.amd64_sha }}"

@@ -1,13 +1,13 @@
 {
   "name": "injectbook",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Convert EPUB books into Codex-compatible agent skills",
   "bin": {
     "injectbook": "dist/src/cli.js"
   },
   "scripts": {
     "build": "tsc --project tsconfig.json && node scripts/copy-assets.cjs && chmod +x dist/src/cli.js",
-    "build:binary": "npm run build",
+    "build:binary": "npm run build && mkdir -p dist/pkg .pkg-cache && PKG_CACHE_PATH=\"$PWD/.pkg-cache\" pkg dist/src/cli.js --targets node18-macos-arm64,node18-macos-x64 --output dist/pkg/injectbook",
     "test:unit": "npm run build && node --test dist/test/parser.test.js dist/test/skill-writer.test.js",
     "test:e2e": "npm run build && node --test dist/test/conversion-corpus.test.js",
     "test:all": "npm run test:unit && npm run test:e2e",
@@ -26,6 +26,15 @@
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
     "@types/node": "^24.3.0",
+    "@yao-pkg/pkg": "^6.14.0",
     "typescript": "^5.9.2"
+  },
+  "pkg": {
+    "scripts": [
+      "dist/src/**/*.js"
+    ],
+    "assets": [
+      "dist/templates/**/*"
+    ]
   }
 }

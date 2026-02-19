@@ -14,12 +14,11 @@ No LLM is used. Output is deterministic.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) (v20+)
 - [Calibre CLI tools](https://calibre-ebook.com) (`ebook-convert`)
 
 ## Platform support
 
-- Works on macOS, Linux, and Windows where Node.js v20+ and `ebook-convert` are available.
+- Works on macOS, Linux, and Windows where `ebook-convert` is available.
 - On macOS Apple Silicon (`arm64`), `injectbook` automatically retries Calibre under Rosetta (`x86_64`) if Calibre hits the Qt `neon` runtime error.
 - Homebrew auto-install prompt for Calibre is macOS-only.
 
@@ -36,6 +35,8 @@ brew install injectbook
 injectbook --version
 ```
 
+Homebrew installs a standalone `injectbook` binary. Node.js is not required for Homebrew installs.
+
 ## Install (local dev)
 
 ```bash
@@ -43,6 +44,8 @@ npm install
 npm run build
 node dist/src/cli.js --version
 ```
+
+Local development requires [Node.js](https://nodejs.org) v20+.
 
 ## Usage
 

@@ -1,16 +1,21 @@
 class Injectbook < Formula
-  desc "Convert books into Codex-compatible skills with Node.js and Calibre"
+  desc "Convert books into Codex-compatible skills with Calibre"
   homepage "https://github.com/prashantbhudwal/injectbook"
-  version "0.2.0"
-  url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.2.0/injectbook-v0.2.0-darwin-arm64.tar.gz"
-  sha256 "REPLACE_WITH_SHA256"
+  version "0.4.0"
   license "MIT"
 
-  depends_on "node"
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.4.0/injectbook-v0.4.0-darwin-arm64.tar.gz"
+      sha256 "REPLACE_WITH_ARM64_SHA256"
+    else
+      url "https://github.com/prashantbhudwal/injectbook/releases/download/v0.4.0/injectbook-v0.4.0-darwin-amd64.tar.gz"
+      sha256 "REPLACE_WITH_AMD64_SHA256"
+    end
+  end
 
   def install
-    libexec.install "injectbook", "src", "templates", "package.json", "node_modules"
-    bin.write_exec_script libexec/"injectbook"
+    bin.install "injectbook"
   end
 
   def caveats
