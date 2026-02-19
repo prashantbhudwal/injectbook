@@ -1,6 +1,7 @@
 # Injectbook Release Playbook
 
 This file documents exactly how to cut releases for `injectbook` and publish/update the Homebrew tap.
+It is written for an agent-driven release where the agent performs all post-tag steps automatically.
 
 ## Repositories
 
@@ -42,6 +43,48 @@ git push origin vX.Y.Z
    - Asset URL (`injectbook-vX.Y.Z-darwin-<arch>.tar.gz`)
    - SHA256 of that exact asset
 
+## Agent automation policy (preferred)
+
+After pushing tag `vX.Y.Z`, the agent should complete all remaining steps without asking for confirmation:
+
+1. Query GitHub release metadata:
+
+```bash
+gh release view vX.Y.Z --repo prashantbhudwal/injectbook --json assets,tagName,name,publishedAt,url
+```
+
+2. Extract the correct artifact and SHA256:
+   - Artifact: `injectbook-vX.Y.Z-darwin-arm64.tar.gz` (or target arch variant when needed)
+   - SHA: use `assets[].digest` (`sha256:<value>`) from the release metadata
+
+3. Update local tap formula in `~/Code/homebrew-tap/Formula/injectbook.rb`:
+   - `version "X.Y.Z"`
+   - release `url` for `vX.Y.Z`
+   - exact `sha256`
+
+4. Commit and push tap repo:
+
+```bash
+cd ~/Code/homebrew-tap
+git add Formula/injectbook.rb
+git commit -m "injectbook vX.Y.Z"
+git push origin main
+```
+
+5. Verify brew install end-to-end:
+
+```bash
+brew update
+brew tap prashantbhudwal/tap
+brew reinstall injectbook
+injectbook --version
+```
+
+6. Report final shipping status including:
+   - app commit/tag pushed
+   - tap commit pushed
+   - installed brew version output
+
 ## Update Homebrew tap formula
 
 1. Edit tap formula file:
@@ -68,6 +111,13 @@ brew install --cask calibre
 brew reinstall injectbook
 injectbook --version
 ```
+
+## Operational notes from current setup
+
+- App repo branch used for release: `master`
+- App release tag format: `vX.Y.Z`
+- Tap repo branch: `main`
+- `sha256` must always come from the published release artifact, never precomputed locally.
 
 ## Notes
 
