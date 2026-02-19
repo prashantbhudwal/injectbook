@@ -60,8 +60,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   - EPUB2 NCX TOC support (fallback)
 - Parser regression coverage for TOC-referenced spine filtering.
 - CI workflow for `push` and `pull_request`:
-  - `npm run check`
-  - `npm test`
+  - `pnpm run check`
+  - `pnpm test`
 - CLI options:
   - `--install`
   - `--install-dir <path>`

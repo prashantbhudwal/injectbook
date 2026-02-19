@@ -40,8 +40,8 @@ Homebrew installs a standalone `injectbook` binary. Node.js is not required for 
 ## Install (local dev)
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm run build
 node dist/src/cli.js --version
 ```
 
@@ -107,11 +107,11 @@ Exit codes:
 ## Development
 
 ```bash
-npm run check
-npm run test:unit
-npm run test:e2e
-npm run test:all
-npm run build:binary
+pnpm run check
+pnpm run test:unit
+pnpm run test:e2e
+pnpm run test:all
+pnpm run build:binary
 ```
 
 ### Corpus-based end-to-end regression test
@@ -120,9 +120,9 @@ For real-book validation, run a corpus of local PDFs through the full conversion
 
 Test modes:
 
-- `npm run test:unit`: parser + skill-writer unit tests only
-- `npm run test:e2e`: corpus conversion test only (`5` PDFs + `5` EPUBs)
-- `npm run test:all` (and `npm test`): unit tests first, then corpus conversion
+- `pnpm run test:unit`: parser + skill-writer unit tests only
+- `pnpm run test:e2e`: corpus conversion test only (`5` PDFs + `5` EPUBs)
+- `pnpm run test:all` (and `pnpm test`): unit tests first, then corpus conversion
 
 ```bash
 mkdir -p output/local-pdfs-verify
