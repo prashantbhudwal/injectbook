@@ -62,7 +62,7 @@ export function writeSkill(
     const fileName = chapterFileName(options.chapterPrefix, chapter);
     const chapterContent = `${chapterFrontmatter(chapter)}${chapter.markdown}\n`;
     fs.writeFileSync(path.join(refsDir, fileName), chapterContent, "utf8");
-    return `- ${chapter.index}. [${chapter.title}](references/${fileName})`;
+    return `- ${chapter.index}. [${chapter.title}](references/${fileName}) (${chapter.wordCount} words)`;
   });
 
   if (options.includeFullBook) {

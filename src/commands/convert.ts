@@ -15,6 +15,12 @@ type ConvertOptions = {
   description?: string;
   includeFullBook: boolean;
   chapterPrefix: string;
+  install?: boolean;
+  installDir?: string;
+  maxChapterWords: number;
+  filterBoilerplate: boolean;
+  stripImages: boolean;
+  stripInternalLinks: boolean;
   overwrite?: boolean;
   verbose?: boolean;
 };
@@ -117,7 +123,14 @@ function normalizeInputWithCalibre(
 ): { normalizedPath: string; tempDir: string } {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-calibre-"));
   const normalizedPath = path.join(tempDir, "normalized.epub");
-  const conversion = spawnSync(ebookConvertCmd, [inputBook, normalizedPath], { encoding: "utf8", shell: false });
+  const conversionArgs = [
+    inputBook,
+    normalizedPath,
+    "--dont-split-on-page-breaks",
+    "--flow-size",
+    "0"
+  ];
+  const conversion = spawnSync(ebookConvertCmd, conversionArgs, { encoding: "utf8", shell: false });
 
   if (conversion.status !== 0) {
     const details = conversion.stderr?.trim() || conversion.stdout?.trim() || "unknown conversion failure";
@@ -126,6 +139,7 @@ function normalizeInputWithCalibre(
 
   if (verbose) {
     console.log(`Calibre normalized input to: ${normalizedPath}`);
+    console.log(`Calibre args: ${conversionArgs.slice(2).join(" ")}`);
   }
 
   return { normalizedPath, tempDir };
@@ -133,6 +147,10 @@ function normalizeInputWithCalibre(
 
 export async function convertBook(inputBook: string, options: ConvertOptions): Promise<{ outDir: string; chapters: number }> {
   assertReadableFile(inputBook);
+  if (!Number.isFinite(options.maxChapterWords) || options.maxChapterWords <= 0) {
+    throw new CliError(`Invalid --max-chapter-words value: ${options.maxChapterWords}`, 2);
+  }
+
   const ebookConvertCmd = await ensureCalibreAvailable(options.verbose);
 
   let tempDir: string | undefined;
@@ -144,10 +162,17 @@ export async function convertBook(inputBook: string, options: ConvertOptions): P
 
     const normalized = normalizeInputWithCalibre(ebookConvertCmd, inputBook, options.verbose);
     tempDir = normalized.tempDir;
-    const { metadata, chapters } = parseEpubToChapters(normalized.normalizedPath);
+    const { metadata, chapters } = parseEpubToChapters(normalized.normalizedPath, {
+      maxChapterWords: options.maxChapterWords,
+      filterBoilerplate: options.filterBoilerplate,
+      stripImages: options.stripImages,
+      stripInternalLinks: options.stripInternalLinks
+    });
 
     const defaults = deriveDefaults(metadata.title, metadata.authors);
-    const outputDir = options.outDir || path.resolve(`${slugify(metadata.title || "book")}-skill`);
+    const defaultSkillDirName = `${slugify(metadata.title || "book")}-skill`;
+    const installOutput = options.install ? path.resolve(options.installDir || ".agents/skills", defaultSkillDirName) : undefined;
+    const outputDir = options.outDir || installOutput || path.resolve(defaultSkillDirName);
 
     writeSkill(metadata, chapters, {
       outDir: outputDir,

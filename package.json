@@ -1,6 +1,6 @@
 {
   "name": "injectbook",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Convert EPUB books into Codex-compatible agent skills",
   "bin": {
     "injectbook": "dist/src/cli.js"

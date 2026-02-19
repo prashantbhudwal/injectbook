@@ -53,6 +53,12 @@ Options:
 - `--description <text>`
 - `--include-full-book` / `--no-include-full-book`
 - `--chapter-prefix <string>` default `chapter-`
+- `--install` write to `.agents/skills/<book-slug>-skill`
+- `--install-dir <path>` default `.agents/skills`
+- `--max-chapter-words <n>` default `15000`
+- `--filter-boilerplate` / `--no-filter-boilerplate`
+- `--strip-images` / `--no-strip-images`
+- `--strip-internal-links` / `--no-strip-internal-links`
 - `--overwrite`
 - `--verbose`
 
@@ -77,3 +83,4 @@ npm run build:binary
 Release/tap maintenance steps are documented in:
 
 - `RELEASE.md`
+- `CHANGELOG.md`

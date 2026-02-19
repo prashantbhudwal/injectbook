@@ -23,8 +23,12 @@ This file documents exactly how to cut releases for `injectbook` and publish/upd
 ## Release process (every version)
 
 1. In app repo, update version where needed (`package.json`, formula version template if you keep one there).
-2. Commit and push app changes to `master`.
-3. Tag release and push tag:
+2. Update `CHANGELOG.md`:
+   - Move notes from `## [Unreleased]` into a new version section `## [X.Y.Z] - YYYY-MM-DD`
+   - Add/update the comparison links at the bottom
+   - Keep newest versions at the top
+3. Commit and push app changes to `master`.
+4. Tag release and push tag:
 
 ```bash
 cd ~/Code/injectbook
@@ -32,9 +36,9 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-4. Wait for workflow `Release` in app repo to complete successfully.
+5. Wait for workflow `Release` in app repo to complete successfully.
    - Workflow file: `~/Code/injectbook/.github/workflows/release.yml`
-5. From the completed run/release, collect:
+6. From the completed run/release, collect:
    - Asset URL (`injectbook-vX.Y.Z-darwin-<arch>.tar.gz`)
    - SHA256 of that exact asset
 

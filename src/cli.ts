@@ -21,6 +21,15 @@ program
   .option("--include-full-book", "Include references/book_full.md", true)
   .option("--no-include-full-book", "Skip references/book_full.md")
   .option("--chapter-prefix <string>", "Prefix for chapter reference files", "chapter-")
+  .option("--install", "Write output to --install-dir/<book-slug>-skill")
+  .option("--install-dir <path>", "Skill install directory", ".agents/skills")
+  .option("--max-chapter-words <n>", "Split chapters larger than this word count", "15000")
+  .option("--filter-boilerplate", "Drop license/cover/contents boilerplate", true)
+  .option("--no-filter-boilerplate", "Keep boilerplate sections")
+  .option("--strip-images", "Strip image references from markdown", true)
+  .option("--no-strip-images", "Keep image references in markdown")
+  .option("--strip-internal-links", "Strip internal EPUB links, keep link text", true)
+  .option("--no-strip-internal-links", "Keep internal EPUB links in markdown")
   .option("--overwrite", "Replace existing output directory")
   .option("--verbose", "Verbose output")
   .action(async (inputBook: string, options) => {
@@ -31,6 +40,12 @@ program
         description: options.description,
         includeFullBook: options.includeFullBook,
         chapterPrefix: options.chapterPrefix,
+        install: options.install,
+        installDir: options.installDir,
+        maxChapterWords: Number.parseInt(options.maxChapterWords, 10),
+        filterBoilerplate: options.filterBoilerplate,
+        stripImages: options.stripImages,
+        stripInternalLinks: options.stripInternalLinks,
         overwrite: options.overwrite,
         verbose: options.verbose
       });

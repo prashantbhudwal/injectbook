@@ -5,3 +5,5 @@ dist
 .tmp
 .DS_Store
 .agents/skills
+local-epubs
+output

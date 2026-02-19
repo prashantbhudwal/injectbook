@@ -61,7 +61,7 @@ describe("skill-writer", () => {
 
     const skillText = fs.readFileSync(skillPath, "utf8");
     assert.match(skillText, /name: Example Book Skill/);
-    assert.match(skillText, /\[Introduction\]\(references\/chapter-001-introduction.md\)/);
+    assert.match(skillText, /\[Introduction\]\(references\/chapter-001-introduction.md\) \(3 words\)/);
 
     const chapterText = fs.readFileSync(chapterPath, "utf8");
     assert.match(chapterText, /title: "Introduction"/);
