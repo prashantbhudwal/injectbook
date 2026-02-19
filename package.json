@@ -1,6 +1,6 @@
 {
   "name": "injectbook",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Convert EPUB books into Codex-compatible agent skills",
   "bin": {
     "injectbook": "dist/src/cli.js"
@@ -8,7 +8,10 @@
   "scripts": {
     "build": "tsc --project tsconfig.json && node scripts/copy-assets.cjs && chmod +x dist/src/cli.js",
     "build:binary": "npm run build",
-    "test": "npm run build && node --test dist/test/*.test.js",
+    "test:unit": "npm run build && node --test dist/test/parser.test.js dist/test/skill-writer.test.js",
+    "test:e2e": "npm run build && node --test dist/test/conversion-corpus.test.js",
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:all",
     "check": "tsc --noEmit --project tsconfig.json"
   },
   "engines": {

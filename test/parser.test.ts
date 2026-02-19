@@ -197,6 +197,47 @@ describe("parser", () => {
     fs.rmSync(tmp, { recursive: true, force: true });
   });
 
+  test("keeps long chapters that contain incidental legal keywords", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-legal-keyword-"));
+    const epubPath = path.join(tmp, "sample.epub");
+    const largeBody = Array.from({ length: 4500 }, () => "alpha").join(" ");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><h1>Main Essay</h1><p>${largeBody}</p><p>Copyright notice for archival scan only.</p></body></html>`
+        }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath);
+    assert.equal(result.chapters.length, 1);
+    assert.equal(result.chapters[0]?.title, "Main Essay");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("filters note-dense sections even when title is generic", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-note-dense-"));
+    const epubPath = path.join(tmp, "sample.epub");
+    const noteLines = Array.from({ length: 120 }, (_, index) => `${index + 1}. Source note content.`).join(" ");
+
+    createEpub(epubPath, {
+      chapters: [
+        { id: "ch1", href: "ch1.xhtml", html: `<!doctype html><html><body><h1>Main Chapter</h1><p>Substantive text.</p></body></html>` },
+        { id: "ch2", href: "ch2.xhtml", html: `<!doctype html><html><body><h1>Appendix</h1><p>${noteLines}</p></body></html>` }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath);
+    assert.equal(result.chapters.length, 1);
+    assert.equal(result.chapters[0]?.title, "Main Chapter");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
   test("uses TOC-referenced spine items when TOC is present", () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-toc-only-"));
     const epubPath = path.join(tmp, "sample.epub");
@@ -239,6 +280,133 @@ describe("parser", () => {
     assert.equal(result.chapters.length, 2);
     assert.equal(result.chapters[0]?.title, "Part A");
     assert.equal(result.chapters[1]?.title, "Part B");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("normalizes numeric split headings to chapter titles", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-numeric-heading-"));
+    const epubPath = path.join(tmp, "sample.epub");
+    const sectionA = Array.from({ length: 80 }, () => "alpha").join(" ");
+    const sectionB = Array.from({ length: 80 }, () => "beta").join(" ");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><h1>1</h1><p>${sectionA}</p><h1>2</h1><p>${sectionB}</p></body></html>`
+        }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath, { maxChapterWords: 50, minSectionWords: 10 });
+    assert.equal(result.chapters[0]?.title, "Chapter 1");
+    assert.equal(result.chapters[1]?.title, "Chapter 2");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("preserves chapter subtitle when heading omits punctuation", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-chapter-subtitle-"));
+    const epubPath = path.join(tmp, "sample.epub");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><h1>Chapter 7 The Trial</h1><p>Body text.</p></body></html>`
+        }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath);
+    assert.equal(result.chapters[0]?.title, "Chapter 7: The Trial");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("falls back to part title when split heading is noisy", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-noisy-heading-"));
+    const epubPath = path.join(tmp, "sample.epub");
+    const sectionA = Array.from({ length: 80 }, () => "alpha").join(" ");
+    const sectionB = Array.from({ length: 80 }, () => "beta").join(" ");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><h1>This heading is very long, contains commas, and reads like a sentence from body copy, not a real chapter title.</h1><p>${sectionA}</p><h1>Clean Heading</h1><p>${sectionB}</p></body></html>`
+        }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath, { maxChapterWords: 50, minSectionWords: 10 });
+    assert.equal(result.chapters[0]?.title, "Chapter 1 Part 1");
+    assert.equal(result.chapters[1]?.title, "Clean Heading");
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("splits oversized chapters by word chunks when headings are missing", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-word-split-"));
+    const epubPath = path.join(tmp, "sample.epub");
+    const partA = Array.from({ length: 45 }, () => "alpha").join(" ");
+    const partB = Array.from({ length: 45 }, () => "beta").join(" ");
+    const partC = Array.from({ length: 45 }, () => "gamma").join(" ");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><p>${partA}</p><p>${partB}</p><p>${partC}</p></body></html>`
+        }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath, { maxChapterWords: 40, minSectionWords: 10 });
+    assert.ok(result.chapters.length > 1);
+    assert.equal(result.chapters[0]?.title, "Chapter 1 Part 1");
+    assert.match(result.chapters[1]?.title || "", /Part 2$/);
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("throws OCR guidance for image-only converted content", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-image-only-"));
+    const epubPath = path.join(tmp, "sample.epub");
+
+    createEpub(epubPath, {
+      chapters: [
+        {
+          id: "ch1",
+          href: "ch1.xhtml",
+          html: `<!doctype html><html><body><img src="scan-page-1.png" /><img src="scan-page-2.png" /></body></html>`
+        }
+      ]
+    });
+
+    assert.throws(() => parseEpubToChapters(epubPath), /image-only|scanned|ocr/i);
+
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  test("keeps Index chapter regardless of title case", () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-epub-index-case-"));
+    const epubPath = path.join(tmp, "sample.epub");
+
+    createEpub(epubPath, {
+      chapters: [
+        { id: "ch1", href: "ch1.xhtml", html: `<!doctype html><html><body><h1>Main Chapter</h1><p>Body text.</p></body></html>` },
+        { id: "ch2", href: "ch2.xhtml", html: `<!doctype html><html><body><h1>Index</h1><p>A 1 B 2 C 3</p></body></html>` }
+      ]
+    });
+
+    const result = parseEpubToChapters(epubPath);
+    assert.ok(result.chapters.some((chapter) => chapter.title === "Index"));
 
     fs.rmSync(tmp, { recursive: true, force: true });
   });

@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -21,6 +21,8 @@ type ConvertOptions = {
   filterBoilerplate: boolean;
   stripImages: boolean;
   stripInternalLinks: boolean;
+  calibreArgs?: string[];
+  keepTemp?: boolean;
   overwrite?: boolean;
   verbose?: boolean;
 };
@@ -116,24 +118,114 @@ async function ensureCalibreAvailable(verbose = false): Promise<string> {
   return resolved;
 }
 
-function normalizeInputWithCalibre(
+async function runCalibreCommand(
+  command: string,
+  args: string[],
+  options: { verbose: boolean; showBasicStatus: boolean; basicLabel: string }
+): Promise<{ status: number | null; output: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    const outputChunks: string[] = [];
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let startedAt = Date.now();
+
+    if (!options.verbose && options.showBasicStatus) {
+      console.log(`${options.basicLabel} (this can take a while for large books)...`);
+      heartbeat = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+        console.log(`${options.basicLabel} still running (${elapsedSeconds}s elapsed)...`);
+      }, 20000);
+    }
+
+    const onData = (chunk: Buffer, target: "stdout" | "stderr"): void => {
+      const text = chunk.toString("utf8");
+      outputChunks.push(text);
+      if (options.verbose) {
+        if (target === "stdout") {
+          process.stdout.write(text);
+        } else {
+          process.stderr.write(text);
+        }
+      }
+    };
+
+    child.stdout.on("data", (chunk: Buffer) => onData(chunk, "stdout"));
+    child.stderr.on("data", (chunk: Buffer) => onData(chunk, "stderr"));
+
+    child.on("error", (error) => {
+      if (heartbeat) {
+        clearInterval(heartbeat);
+      }
+      reject(error);
+    });
+
+    child.on("close", (status) => {
+      if (heartbeat) {
+        clearInterval(heartbeat);
+      }
+      if (!options.verbose && options.showBasicStatus) {
+        const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+        if (status === 0) {
+          console.log(`${options.basicLabel} completed (${elapsedSeconds}s).`);
+        } else {
+          console.log(`${options.basicLabel} failed (${elapsedSeconds}s).`);
+        }
+      }
+      resolve({ status, output: outputChunks.join("") });
+    });
+  });
+}
+
+async function normalizeInputWithCalibre(
   ebookConvertCmd: string,
   inputBook: string,
+  normalizedPath: string,
+  calibreArgs: string[] = [],
   verbose = false
-): { normalizedPath: string; tempDir: string } {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-calibre-"));
-  const normalizedPath = path.join(tempDir, "normalized.epub");
+): Promise<void> {
   const conversionArgs = [
     inputBook,
     normalizedPath,
     "--dont-split-on-page-breaks",
     "--flow-size",
-    "0"
+    "0",
+    ...calibreArgs
   ];
-  const conversion = spawnSync(ebookConvertCmd, conversionArgs, { encoding: "utf8", shell: false });
+  const conversion = await runCalibreCommand(ebookConvertCmd, conversionArgs, {
+    verbose,
+    showBasicStatus: true,
+    basicLabel: "Calibre conversion"
+  });
+
+  const looksLikeQtNeonError = (text: string): boolean => {
+    const normalized = text.toLowerCase();
+    return normalized.includes("this qt build requires the following features:") && normalized.includes("neon");
+  };
 
   if (conversion.status !== 0) {
-    const details = conversion.stderr?.trim() || conversion.stdout?.trim() || "unknown conversion failure";
+    const details = conversion.output.trim() || "unknown conversion failure";
+
+    // Workaround for some Calibre/Qt ARM builds on Apple Silicon that abort with a bogus NEON requirement.
+    // Retrying under Rosetta (x86_64 slice) is often successful.
+    if (process.platform === "darwin" && process.arch === "arm64" && looksLikeQtNeonError(details)) {
+      const rosetta = await runCalibreCommand("/usr/bin/arch", ["-x86_64", ebookConvertCmd, ...conversionArgs], {
+        verbose,
+        showBasicStatus: true,
+        basicLabel: "Calibre Rosetta retry"
+      });
+
+      if (rosetta.status === 0) {
+        console.log("Retried Calibre under Rosetta (x86_64) after Qt NEON error.");
+        return;
+      }
+
+      const rosettaDetails = rosetta.output.trim() || details;
+      throw new CliError(
+        `Calibre conversion failed (Qt NEON error; Rosetta retry also failed): ${rosettaDetails}`,
+        4
+      );
+    }
+
     throw new CliError(`Calibre conversion failed: ${details}`, 4);
   }
 
@@ -141,8 +233,6 @@ function normalizeInputWithCalibre(
     console.log(`Calibre normalized input to: ${normalizedPath}`);
     console.log(`Calibre args: ${conversionArgs.slice(2).join(" ")}`);
   }
-
-  return { normalizedPath, tempDir };
 }
 
 export async function convertBook(inputBook: string, options: ConvertOptions): Promise<{ outDir: string; chapters: number }> {
@@ -154,20 +244,32 @@ export async function convertBook(inputBook: string, options: ConvertOptions): P
   const ebookConvertCmd = await ensureCalibreAvailable(options.verbose);
 
   let tempDir: string | undefined;
+  let conversionSucceeded = false;
 
   try {
     if (options.verbose) {
       console.log(`Converting with Calibre: ${inputBook}`);
+    } else {
+      console.log(`Starting conversion: ${path.basename(inputBook)}`);
     }
 
-    const normalized = normalizeInputWithCalibre(ebookConvertCmd, inputBook, options.verbose);
-    tempDir = normalized.tempDir;
-    const { metadata, chapters } = parseEpubToChapters(normalized.normalizedPath, {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "injectbook-calibre-"));
+    const normalizedPath = path.join(tempDir, "normalized.epub");
+
+    await normalizeInputWithCalibre(ebookConvertCmd, inputBook, normalizedPath, options.calibreArgs, options.verbose);
+    if (!options.verbose) {
+      console.log("Parsing normalized book content...");
+    }
+
+    const { metadata, chapters } = parseEpubToChapters(normalizedPath, {
       maxChapterWords: options.maxChapterWords,
       filterBoilerplate: options.filterBoilerplate,
       stripImages: options.stripImages,
       stripInternalLinks: options.stripInternalLinks
     });
+    if (!options.verbose) {
+      console.log(`Parsed ${chapters.length} chapter(s). Writing skill files...`);
+    }
 
     const defaults = deriveDefaults(metadata.title, metadata.authors);
     const defaultSkillDirName = `${slugify(metadata.title || "book")}-skill`;
@@ -182,12 +284,21 @@ export async function convertBook(inputBook: string, options: ConvertOptions): P
       includeFullBook: options.includeFullBook,
       overwrite: Boolean(options.overwrite)
     });
+    if (!options.verbose) {
+      console.log("Skill files written.");
+    }
+
+    conversionSucceeded = true;
 
     return {
       outDir: outputDir,
       chapters: chapters.length
     };
   } catch (error) {
+    if (options.keepTemp && tempDir && fs.existsSync(tempDir)) {
+      console.error(`Kept temporary conversion files at: ${tempDir}`);
+    }
+
     if (error instanceof CliError) {
       throw error;
     }
@@ -195,7 +306,7 @@ export async function convertBook(inputBook: string, options: ConvertOptions): P
     const message = error instanceof Error ? error.message : "unknown error";
     throw new CliError(`Book conversion failed: ${message}`, 4);
   } finally {
-    if (tempDir && fs.existsSync(tempDir)) {
+    if (tempDir && fs.existsSync(tempDir) && (conversionSucceeded || !options.keepTemp)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
   }

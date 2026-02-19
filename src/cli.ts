@@ -30,6 +30,13 @@ program
   .option("--no-strip-images", "Keep image references in markdown")
   .option("--strip-internal-links", "Strip internal EPUB links, keep link text", true)
   .option("--no-strip-internal-links", "Keep internal EPUB links in markdown")
+  .option(
+    "--calibre-arg <arg>",
+    "Append one raw argument token to ebook-convert (repeatable)",
+    (value: string, previous: string[]) => [...previous, value],
+    []
+  )
+  .option("--keep-temp", "Keep temporary normalized files when conversion fails")
   .option("--overwrite", "Replace existing output directory")
   .option("--verbose", "Verbose output")
   .action(async (inputBook: string, options) => {
@@ -46,6 +53,8 @@ program
         filterBoilerplate: options.filterBoilerplate,
         stripImages: options.stripImages,
         stripInternalLinks: options.stripInternalLinks,
+        calibreArgs: options.calibreArg,
+        keepTemp: options.keepTemp,
         overwrite: options.overwrite,
         verbose: options.verbose
       });
