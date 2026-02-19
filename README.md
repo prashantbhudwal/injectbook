@@ -21,11 +21,21 @@ No LLM is used. Output is deterministic.
 
 - Any format that Calibre can convert to EPUB
 
+## Install (Homebrew)
+
+```bash
+brew tap prashantbhudwal/tap
+brew install --cask calibre
+brew install injectbook
+injectbook --version
+```
+
 ## Install (local dev)
 
 ```bash
 npm install
 npm run build
+node dist/src/cli.js --version
 ```
 
 ## Usage
@@ -62,15 +72,8 @@ npm test
 npm run build:binary
 ```
 
-## Homebrew distribution (tap)
+## Release docs
 
-1. Create GitHub release by tagging `vX.Y.Z`.
-2. Workflow builds `injectbook-vX.Y.Z-darwin-arm64.tar.gz`.
-3. Update `Formula/injectbook.rb` in tap repo with new `url` + `sha256`.
-4. Users install:
+Release/tap maintenance steps are documented in:
 
-```bash
-brew tap prashantbhudwal/tap
-brew install --cask calibre
-brew install injectbook
-```
+- `RELEASE.md`
