@@ -9,6 +9,24 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - No changes yet.
 
+## [0.5.0] - 2026-02-19
+
+### Added
+
+- Familiar flag aliases for better CLI ergonomics:
+  - `-o, --output, --output-dir, --skill-dir` for `--out-dir`
+  - `-n, --name` for `--skill-name`
+- New `--out-parent-dir <path>` option to create `<slug>-skill/` under a parent directory, clarifying output semantics.
+- Improved path error diagnostics with "did you mean?" suggestions for smart quotes and similar characters.
+- Safety warning when `--overwrite` targets a non-skill directory.
+- `--install` examples in help text and README for better discoverability.
+
+### Changed
+
+- `ENOENT` errors now include the exact path string, cwd, and hints about special characters.
+- `--out-dir` help text now explicitly describes it as the *final skill directory*.
+- Conflicting output flags (`--out-dir`, `--out-parent-dir`, `--install`) are now detected and rejected.
+
 ## [0.4.0] - 2026-02-19
 
 ### Changed
@@ -67,7 +85,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Metadata extraction no longer emits placeholders like `[object Object]`.
 - Reduced non-chapter artifacts in chapter indexes for many EPUBs.
 
-[Unreleased]: https://github.com/prashantbhudwal/injectbook/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/prashantbhudwal/injectbook/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/prashantbhudwal/injectbook/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/prashantbhudwal/injectbook/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/prashantbhudwal/injectbook/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/prashantbhudwal/injectbook/releases/tag/v0.2.0

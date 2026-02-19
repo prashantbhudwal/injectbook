@@ -50,29 +50,46 @@ Local development requires [Node.js](https://nodejs.org) v20+.
 ## Usage
 
 ```bash
+# Basic conversion
 injectbook convert ./my-book.epub
-injectbook convert ./my-book.pdf
+
+# Install into a skills directory
+injectbook convert ./my-book.pdf --install --install-dir .agents/skills
+
+# Output to specific directory (creates SKILL.md + references/ here)
+injectbook convert ./book.epub --out-dir ./my-output/
+
+# Output to parent directory (creates ./skills/book-slug-skill/)
+injectbook convert ./book.epub --out-parent-dir ./skills
 ```
 
 If Calibre is missing, the CLI explains why it is required and, on macOS terminals, asks whether you want it installed via Homebrew.
 
-Options:
+### Options
 
-- `--out-dir <path>` default `./<book-slug>-skill`
-- `--skill-name <name>`
-- `--description <text>`
-- `--include-full-book` / `--no-include-full-book`
-- `--chapter-prefix <string>` default `chapter-`
-- `--install` write to `.agents/skills/<book-slug>-skill`
-- `--install-dir <path>` default `.agents/skills`
-- `--max-chapter-words <n>` default `15000`
-- `--filter-boilerplate` / `--no-filter-boilerplate`
-- `--strip-images` / `--no-strip-images`
-- `--strip-internal-links` / `--no-strip-internal-links`
-- `--calibre-arg <arg>` repeatable, appends one raw token to `ebook-convert`
-- `--keep-temp` keep temporary conversion files when conversion fails
-- `--overwrite`
-- `--verbose`
+Output location (pick one):
+- `--out-dir <path>` Output directory (writes SKILL.md + references/ directly here). Alias: `-o, --output, --output-dir, --skill-dir`
+- `--out-parent-dir <path>` Parent directory; creates `<book-slug>-skill/` under it
+- `--install` Write to `--install-dir/<book-slug>-skill` (useful for agent skill repos)
+- `--install-dir <path>` Skill install directory, default `.agents/skills`
+
+Naming:
+- `--skill-name <name>` Override skill name. Alias: `-n, --name`
+- `--description <text>` Override skill description
+
+Content:
+- `--include-full-book` / `--no-include-full-book` Include `references/book_full.md` (default: true)
+- `--chapter-prefix <string>` Prefix for chapter reference files, default `chapter-`
+- `--max-chapter-words <n>` Split chapters larger than this word count, default `15000`
+- `--filter-boilerplate` / `--no-filter-boilerplate` Drop license/cover/contents boilerplate (default: true)
+- `--strip-images` / `--no-strip-images` Strip image references from markdown (default: true)
+- `--strip-internal-links` / `--no-strip-internal-links` Strip internal EPUB links, keep link text (default: true)
+- `--calibre-arg <arg>` Repeatable; appends one raw token to `ebook-convert`
+
+Safety & debugging:
+- `--overwrite` Replace existing output directory (warns if directory doesn't look like a skill)
+- `--keep-temp` Keep temporary conversion files when conversion fails
+- `--verbose` Verbose output
 
 PDF notes:
 
